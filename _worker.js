@@ -23,7 +23,7 @@ export default {
         const token = env.TOKEN || "token";
         const bot_token = env.BOT_TOKEN || "8226743743:AAHfrc09vW8cxKHyU0q0YKPuCXrW1ICWdU0";
         const GROUP_ID = env.GROUP_ID || "-1002563172210";
-
+        const siteName = env.NEXT_PUBLIC_SITE_NAME || null;
         const url = new URL(request.url);
         const path = url.pathname;
 
@@ -46,7 +46,7 @@ export default {
 
         // 处理 Telegram Webhook
         if (request.method === 'POST') {
-            return await handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, username, password, env.KV);
+            return await handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, username, password, env.KV, siteName);
         }
 
         // 默认返回404错误页面（伪装）
@@ -246,7 +246,7 @@ async function handleWebhookInit(bot_token, workerUrl, token) {
                     { command: "start", description: "注册/查看用户信息" }
                 ]
             }),
-        }); 
+        });
         const setCommandsResult = await setCommandsResponse.json();
 
         return new Response(JSON.stringify({
@@ -273,15 +273,15 @@ async function isCommandForThisBot(text, bot_token) {
     if (!text.includes('@')) {
         return { isForThisBot: true, normalizedText: text };
     }
-    
+
     // 提取@后面的机器人用户名
     const atMatch = text.match(/@(\w+)/);
     if (!atMatch) {
         return { isForThisBot: true, normalizedText: text };
     }
-    
+
     const mentionedBotUsername = atMatch[1];
-    
+
     try {
         // 获取当前机器人的信息
         const botInfoResponse = await fetch(`https://api.telegram.org/bot${bot_token}/getMe`);
@@ -289,14 +289,14 @@ async function isCommandForThisBot(text, bot_token) {
             // 如果无法获取机器人信息，为了安全起见，只处理不带@的命令
             return { isForThisBot: !text.includes('@'), normalizedText: text.replace(/@\w+/g, '') };
         }
-        
+
         const botInfo = await botInfoResponse.json();
         const currentBotUsername = botInfo.result.username;
-        
+
         // 检查是否是发给当前机器人的命令
         const isForThisBot = mentionedBotUsername === currentBotUsername;
         const normalizedText = isForThisBot ? text.replace(/@\w+/g, '') : text;
-        
+
         return { isForThisBot, normalizedText };
     } catch (error) {
         console.error('Error checking bot info:', error);
@@ -306,7 +306,7 @@ async function isCommandForThisBot(text, bot_token) {
 }
 
 // 处理 Telegram Webhook
-async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, username, password, KV) {
+async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, username, password, KV, siteName) {
     try {
         const update = await request.json();
 
@@ -315,10 +315,10 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, us
             const userId = message.from.id;
             const chatId = message.chat.id;
             const text = message.text;
-            
+
             // 检查命令是否是发给当前机器人的
             const { isForThisBot, normalizedText } = await isCommandForThisBot(text, bot_token);
-            
+
             // 如果命令不是发给当前机器人的，直接忽略
             if (!isForThisBot) {
                 return new Response('OK');
@@ -326,24 +326,24 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, us
 
             // 处理 /start 命令
             if (normalizedText === '/start') {
-                return await handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV);
+                return await handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV, siteName);
             }
 
             // 处理 /pwd 命令
             if (normalizedText.startsWith('/pwd')) {
                 if (normalizedText === '/pwd' || normalizedText.trim() === '/pwd') {
                     // 用户只输入了 /pwd 没有提供密码
-                    await sendMessage(bot_token, chatId, "❌ 请输入要修改的新密码\n\n💡 使用方法：<code>/pwd 新密码</code>\n📝 示例：<code>/pwd 12345678</code>\n\n这样就会将密码改为 12345678", moontvUrl);
+                    await sendMessage(bot_token, chatId, "❌ 请输入要修改的新密码\n\n💡 使用方法：<code>/pwd 新密码</code>\n📝 示例：<code>/pwd 12345678</code>\n\n这样就会将密码改为 12345678", moontvUrl, siteName);
                     return new Response('OK');
                 } else if (normalizedText.startsWith('/pwd ')) {
                     const newPassword = normalizedText.substring(5).trim();
-                    return await handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, moontvUrl, username, password, KV);
+                    return await handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, moontvUrl, username, password, KV, siteName);
                 }
             }
 
             // 处理 /state 命令
             if (normalizedText === '/state') {
-                return await handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV);
+                return await handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV, siteName);
             }
         }
 
@@ -355,14 +355,37 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, us
 }
 
 // 处理 /start 命令
-async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV) {
+async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV, siteName) {
     try {
         // 检查用户是否在群组中
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
 
         if (!isInGroup) {
-            await sendMessage(bot_token, chatId, "⚠️ 当前用户无注册权限，请先加入指定群组。", moontvUrl);
+            await sendMessage(bot_token, chatId, "⚠️ 当前用户无注册权限，请先加入指定群组。", moontvUrl, siteName);
             return new Response('OK');
+        }
+
+        // 获取站点名称（如果环境变量没有设置，则从API获取）
+        let actualSiteName = siteName;
+        if (!actualSiteName) {
+            try {
+                const cookie = await getCookie(moontvUrl, username, password, KV);
+                const configResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/admin/config`, {
+                    method: 'GET',
+                    headers: {
+                        'Cookie': cookie,
+                        'User-Agent': USER_AGENT
+                    }
+                });
+
+                if (configResponse.ok) {
+                    const configResult = await configResponse.json();
+                    actualSiteName = configResult.Config?.SiteConfig?.SiteName || 'MoonTV';
+                }
+            } catch (error) {
+                console.log('获取API站点名称失败，使用默认值:', error.message);
+                actualSiteName = 'MoonTV';
+            }
         }
 
         // 检查用户是否已注册（通过API查询）
@@ -411,7 +434,7 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
                 responseMessage = `✅ 注册成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 请妥善保存密码，忘记密码可通过修改密码命令重置`;
             } catch (apiError) {
                 console.error('添加用户API失败:', apiError);
-                await sendMessage(bot_token, chatId, `❌ 注册失败: ${apiError.message}\n\n请稍后再试或联系管理员。`, moontvUrl);
+                await sendMessage(bot_token, chatId, `❌ 注册失败: ${apiError.message}\n\n请稍后再试或联系管理员。`, moontvUrl, actualSiteName);
                 return new Response('OK');
             }
         } else {
@@ -419,28 +442,28 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
             responseMessage = `ℹ️ 你已注册过账户\n\n🆔 用户名：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
         }
 
-        await sendMessage(bot_token, chatId, responseMessage, moontvUrl);
+        await sendMessage(bot_token, chatId, responseMessage, moontvUrl, actualSiteName);
         return new Response('OK');
     } catch (error) {
         console.error('Error in start command:', error);
-        await sendMessage(bot_token, chatId, "❌ 操作失败，请稍后再试。", moontvUrl);
+        await sendMessage(bot_token, chatId, "❌ 操作失败，请稍后再试。", moontvUrl, actualSiteName || siteName);
         return new Response('OK');
     }
 }
 
 // 处理 /state 命令
-async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV) {
+async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV, siteName) {
     try {
         // 检查用户是否在群组中
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
 
         if (!isInGroup) {
-            await sendMessage(bot_token, chatId, "⚠️ 当前用户无权限，请先加入指定群组。", moontvUrl);
+            await sendMessage(bot_token, chatId, "⚠️ 当前用户无权限，请先加入指定群组。", moontvUrl, siteName);
             return new Response('OK');
         }
 
         // 发送加载中的消息
-        //await sendMessage(bot_token, chatId, "📊 正在获取站点状态信息...", moontvUrl);
+        //await sendMessage(bot_token, chatId, "📊 正在获取站点状态信息...", moontvUrl, siteName);
 
         // 获取配置信息
         try {
@@ -468,7 +491,11 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
             const userCount = configResult.Config.UserConfig?.Users?.length || 0;
             const sourceCount = configResult.Config.SourceConfig?.length || 0;
             const liveCount = configResult.Config.LiveConfig?.length || 0;
-            const siteName = configResult.Config.SiteConfig?.SiteName || 'MoonTV';
+            const configSiteName = siteName || configResult.Config.SiteConfig?.SiteName || 'MoonTV';
+
+            console.log('DEBUG: siteName from env:', siteName);
+            console.log('DEBUG: SiteName from API:', configResult.Config.SiteConfig?.SiteName);
+            console.log('DEBUG: Final configSiteName:', configSiteName);
 
             // 计算活跃的视频源和直播源数量
             const activeSourceCount = configResult.Config.SourceConfig?.filter(source => !source.disabled).length || 0;
@@ -486,7 +513,7 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
             }) : '未知';
 
             // 构建状态消息
-            const stateMessage = `🎬 <b>${siteName}</b> 站点状态
+            const stateMessage = `🎬 <b>${configSiteName}</b> 站点状态
 
 📊 <b>核心统计</b>
 👥 总用户数: <b>${userCount}</b> 人
@@ -512,35 +539,35 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
 
 <i>最后更新: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</i>`;
 
-            await sendMessage(bot_token, chatId, stateMessage, moontvUrl);
+            await sendMessage(bot_token, chatId, stateMessage, moontvUrl, configSiteName);
             return new Response('OK');
 
         } catch (apiError) {
             console.error('获取站点状态失败:', apiError);
-            await sendMessage(bot_token, chatId, `❌ 获取站点状态失败: ${apiError.message}\n\n请稍后再试或联系管理员。`, moontvUrl);
+            await sendMessage(bot_token, chatId, `❌ 获取站点状态失败: ${apiError.message}\n\n请稍后再试或联系管理员。`, moontvUrl, siteName);
             return new Response('OK');
         }
 
     } catch (error) {
         console.error('Error in state command:', error);
-        await sendMessage(bot_token, chatId, "❌ 操作失败，请稍后再试。", moontvUrl);
+        await sendMessage(bot_token, chatId, "❌ 操作失败，请稍后再试。", moontvUrl, siteName);
         return new Response('OK');
     }
 }
 
 // 处理 /pwd 命令
-async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, moontvUrl, username, password, KV) {
+async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, moontvUrl, username, password, KV, siteName) {
     try {
         // 检查用户是否在群组中
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
 
         if (!isInGroup) {
-            await sendMessage(bot_token, chatId, "⚠️ 当前用户无权限，请先加入指定群组。", moontvUrl);
+            await sendMessage(bot_token, chatId, "⚠️ 当前用户无权限，请先加入指定群组。", moontvUrl, siteName);
             return new Response('OK');
         }
 
         if (!newPassword || newPassword.length < 6) {
-            await sendMessage(bot_token, chatId, "❌ 密码长度至少6位，请重新输入。\n\n💡 使用方法：<code>/pwd</code> 你的新密码", moontvUrl);
+            await sendMessage(bot_token, chatId, "❌ 密码长度至少6位，请重新输入。\n\n💡 使用方法：<code>/pwd</code> 你的新密码", moontvUrl, siteName);
             return new Response('OK');
         }
 
@@ -548,7 +575,7 @@ async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPas
         const userExists = await checkUserExists(moontvUrl, username, password, KV, userId.toString());
 
         if (!userExists) {
-            await sendMessage(bot_token, chatId, "❌ 用户未注册，请先使用 /start 命令注册账户。", moontvUrl);
+            await sendMessage(bot_token, chatId, "❌ 用户未注册，请先使用 /start 命令注册账户。", moontvUrl, siteName);
             return new Response('OK');
         }
 
@@ -589,16 +616,16 @@ async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPas
             userData.lastPasswordChange = Date.now();
             await KV.put(userKey, JSON.stringify(userData));
 
-            await sendMessage(bot_token, chatId, `✅ 密码修改成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 新密码：<code>${newPassword}</code>\n\n💡 新密码已生效，请妥善保存`, moontvUrl);
+            await sendMessage(bot_token, chatId, `✅ 密码修改成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 新密码：<code>${newPassword}</code>\n\n💡 新密码已生效，请妥善保存`);
             return new Response('OK');
         } catch (apiError) {
             console.error('修改密码API失败:', apiError);
-            await sendMessage(bot_token, chatId, `❌ 密码修改失败: ${apiError.message}\n\n请稍后再试或联系管理员。`, moontvUrl);
+            await sendMessage(bot_token, chatId, `❌ 密码修改失败: ${apiError.message}\n\n请稍后再试或联系管理员。`, moontvUrl, siteName);
             return new Response('OK');
         }
     } catch (error) {
         console.error('Error in password command:', error);
-        await sendMessage(bot_token, chatId, "❌ 密码修改失败，请稍后再试。", moontvUrl);
+        await sendMessage(bot_token, chatId, "❌ 密码修改失败，请稍后再试。", moontvUrl, siteName);
         return new Response('OK');
     }
 }
@@ -629,8 +656,8 @@ async function checkUserInGroup(bot_token, groupId, userId) {
     }
 }
 
-// 发送消息（带有 MoonTV 链接按钮）
-async function sendMessage(bot_token, chatId, text, moontvUrl = null) {
+// 发送消息（带有站点链接按钮）
+async function sendMessage(bot_token, chatId, text, moontvUrl = null, siteName = null) {
     try {
         const messageData = {
             chat_id: chatId,
@@ -640,10 +667,11 @@ async function sendMessage(bot_token, chatId, text, moontvUrl = null) {
 
         // 如果提供了 moontvUrl，添加内联键盘
         if (moontvUrl) {
+            const buttonText = siteName ? `🎬 ${siteName}观影站点` : "🎬 MoonTV观影站点";
             messageData.reply_markup = {
                 inline_keyboard: [[
                     {
-                        text: "🎬 MoonTV观影站点",
+                        text: buttonText,
                         url: moontvUrl
                     }
                 ]]
