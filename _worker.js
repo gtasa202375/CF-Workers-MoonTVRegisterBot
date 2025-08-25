@@ -17,7 +17,7 @@ function generateInitialPassword(userId) {
 
 export default {
     async fetch(request, env, ctx) {
-        const moontvUrl = env.MOONTVURL || "https://cmoontv.dedyn.io/";
+        const moontvUrl = env.MOONTVURL || "https://moontv.com/";
         const username = env.USERNAME || "admin";
         const password = env.PASSWORD || "admin_password";
         const token = env.TOKEN || "token";
