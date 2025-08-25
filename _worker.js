@@ -267,6 +267,44 @@ async function handleWebhookInit(bot_token, workerUrl, token) {
     }
 }
 
+// 检查命令是否是发给当前机器人的
+async function isCommandForThisBot(text, bot_token) {
+    // 如果命令中没有@，说明是私聊或者群组中的通用命令
+    if (!text.includes('@')) {
+        return { isForThisBot: true, normalizedText: text };
+    }
+    
+    // 提取@后面的机器人用户名
+    const atMatch = text.match(/@(\w+)/);
+    if (!atMatch) {
+        return { isForThisBot: true, normalizedText: text };
+    }
+    
+    const mentionedBotUsername = atMatch[1];
+    
+    try {
+        // 获取当前机器人的信息
+        const botInfoResponse = await fetch(`https://api.telegram.org/bot${bot_token}/getMe`);
+        if (!botInfoResponse.ok) {
+            // 如果无法获取机器人信息，为了安全起见，只处理不带@的命令
+            return { isForThisBot: !text.includes('@'), normalizedText: text.replace(/@\w+/g, '') };
+        }
+        
+        const botInfo = await botInfoResponse.json();
+        const currentBotUsername = botInfo.result.username;
+        
+        // 检查是否是发给当前机器人的命令
+        const isForThisBot = mentionedBotUsername === currentBotUsername;
+        const normalizedText = isForThisBot ? text.replace(/@\w+/g, '') : text;
+        
+        return { isForThisBot, normalizedText };
+    } catch (error) {
+        console.error('Error checking bot info:', error);
+        // 出错时为了安全起见，只处理不带@的命令
+        return { isForThisBot: !text.includes('@'), normalizedText: text.replace(/@\w+/g, '') };
+    }
+}
+
 // 处理 Telegram Webhook
 async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, username, password, KV) {
     try {
@@ -277,26 +315,34 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, us
             const userId = message.from.id;
             const chatId = message.chat.id;
             const text = message.text;
+            
+            // 检查命令是否是发给当前机器人的
+            const { isForThisBot, normalizedText } = await isCommandForThisBot(text, bot_token);
+            
+            // 如果命令不是发给当前机器人的，直接忽略
+            if (!isForThisBot) {
+                return new Response('OK');
+            }
 
             // 处理 /start 命令
-            if (text === '/start') {
+            if (normalizedText === '/start') {
                 return await handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV);
             }
 
             // 处理 /pwd 命令
-            if (text.startsWith('/pwd')) {
-                if (text === '/pwd' || text.trim() === '/pwd') {
+            if (normalizedText.startsWith('/pwd')) {
+                if (normalizedText === '/pwd' || normalizedText.trim() === '/pwd') {
                     // 用户只输入了 /pwd 没有提供密码
                     await sendMessage(bot_token, chatId, "❌ 请输入要修改的新密码\n\n💡 使用方法：<code>/pwd 新密码</code>\n📝 示例：<code>/pwd 12345678</code>\n\n这样就会将密码改为 12345678", moontvUrl);
                     return new Response('OK');
-                } else if (text.startsWith('/pwd ')) {
-                    const newPassword = text.substring(5).trim();
+                } else if (normalizedText.startsWith('/pwd ')) {
+                    const newPassword = normalizedText.substring(5).trim();
                     return await handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, moontvUrl, username, password, KV);
                 }
             }
 
             // 处理 /state 命令
-            if (text === '/state') {
+            if (normalizedText === '/state') {
                 return await handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV);
             }
         }
