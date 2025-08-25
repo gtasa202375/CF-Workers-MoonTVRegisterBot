@@ -1,3 +1,19 @@
+// MD5 加密函数
+async function md5(text) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('MD5', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+// 生成初始密码
+function generateInitialPassword(userId) {
+    const timestamp = Date.now();
+    const rawText = `${userId}${timestamp}`;
+    return md5(rawText).then(hash => hash.substring(0, 8));
+}
+
 export default {
     async fetch(request, env, ctx) {
         const redisURL = env.REDIS_URL || "rediss://default:AYjpAAIncDFlN2YyMDZhMThmYjY0MWIxOGRiZTViYzIxYzM5M2I3MXAxMzUwNDk@outgoing-firefly-35049.upstash.io:6379";
@@ -143,15 +159,16 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, redisRest
 
         if (existingUser === null) {
             // 用户未注册，创建新账户
-            await setRedisValue(redisRestUrl, redisRestToken, userKey, userId.toString());
+            const initialPassword = await generateInitialPassword(userId);
+            await setRedisValue(redisRestUrl, redisRestToken, userKey, initialPassword);
 
             // 将用户添加到admin:config中
             const configUpdateResult = await addUserToConfig(redisRestUrl, redisRestToken, userId.toString());
 
             if (configUpdateResult.success) {
-                responseMessage = `✅ 注册成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码`;
+                responseMessage = `✅ 注册成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码`;
             } else {
-                responseMessage = `⚠️ 账户创建成功，但配置更新失败\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n❌ 错误信息：${configUpdateResult.error}`;
+                responseMessage = `⚠️ 账户创建成功，但配置更新失败\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n❌ 错误信息：${configUpdateResult.error}`;
             }
         } else {
             // 用户已存在，显示当前信息
