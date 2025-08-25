@@ -1,0 +1,16 @@
+name = "moontvregisterbot"
+main = "_worker.js"
+compatibility_date = "2024-08-01"
+
+# 您可以在这里配置环境变量，将敏感信息从代码中分离
+# [vars]
+# REDIS_URL = "your-redis-url"
+# REDIS_TOKEN = "your-redis-token"
+
+# 如果需要 KV 存储，可以取消注释下面的行
+# [[kv_namespaces]]
+# binding = "MY_KV_NAMESPACE"
+# id = "your-kv-namespace-id"
+
+# 设置兼容性标志
+compatibility_flags = [ "nodejs_compat" ]

@@ -1,0 +1,16 @@
+{
+  "name": "cf-workers-moontvregisterbot",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker for MoonTV Register Bot with Redis integration",
+  "main": "_worker.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "preview": "wrangler preview"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.78.12"
+  },
+  "type": "module"
+}
