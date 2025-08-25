@@ -1,13 +1,25 @@
 {
   "name": "cf-workers-moontvregisterbot",
-  "version": "1.0.0",
-  "description": "Cloudflare Worker for MoonTV Register Bot with Redis integration",
+  "version": "2.0.0",
+  "description": "Cloudflare Worker for MoonTV Register Bot with API integration",
   "main": "_worker.js",
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "preview": "wrangler preview"
+    "dev": "wrangler dev"
   },
+  "keywords": [
+    "cloudflare-workers",
+    "telegram-bot",
+    "moontv",
+    "user-registration",
+    "api-integration"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cmliu/CF-Workers-MoonTVRegisterBot.git"
+  },
+  "author": "cmliu",
+  "license": "MIT",
   "dependencies": {},
   "devDependencies": {
     "wrangler": "^3.78.12"

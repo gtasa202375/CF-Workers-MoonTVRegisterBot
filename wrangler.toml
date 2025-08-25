@@ -3,11 +3,15 @@ main = "_worker.js"
 compatibility_date = "2024-08-01"
 keep_vars = true
 
-# 您可以在这里配置环境变量，将敏感信息从代码中分离
+# 环境变量配置（请在 Cloudflare 控制台中配置）
 # [vars]
-# REDIS_URL = "your-redis-url"
-# REDIS_TOKEN = "your-redis-token"
-# BOT_TOKEN = "83215123:A123feKRmoUV7OWOECrq61M5Q1GA"
+# BOT_TOKEN = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+# GROUP_ID = "-1001234567890"
+# MOONTVURL = "https://moontv.dedyn.io"
+# USERNAME = "admin"
+# PASSWORD = "your-admin-password"
+# TOKEN = "token"
 
-# 设置兼容性标志
-compatibility_flags = ["nodejs_compat"]
+[[kv_namespaces]]
+binding = "KV"
+id = "1fdae7a5eb774135832f55d461ac81e3"
