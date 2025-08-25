@@ -1,4 +1,4 @@
-# CF-Workers-MoonTVRegisterBot
+# MoonTV Register Bot
 
 🤖 基于 Cloudflare Workers 的 MoonTV 用户注册 Telegram 机器人
 
