@@ -65,6 +65,38 @@ GROUP_ID = "your-telegram-group-id"
 npm run deploy
 ```
 
+### 6. 初始化机器人
+
+⚠️ **重要步骤**：部署完成后，必须访问以下 URL 来初始化机器人的 Webhook：
+
+```url
+https://your-worker-name.your-subdomain.workers.dev/your-token
+```
+
+其中：
+- `your-worker-name` 是你的 Worker 名称（在 `wrangler.toml` 中的 `name` 字段）
+- `your-subdomain.workers` 是你的 Cloudflare 子域名
+- `your-token` 是你在环境变量中设置的 `TOKEN` 值
+
+访问成功后，你将看到类似以下的 JSON 响应：
+```json
+{
+  "webhook": {
+    "ok": true,
+    "result": true,
+    "description": "Webhook was set"
+  },
+  "commands": {
+    "ok": true,
+    "result": true,
+    "description": "Commands were set"
+  },
+  "message": "Bot initialized successfully"
+}
+```
+
+🎉 初始化完成后，机器人就可以正常接收和处理 Telegram 消息了！
+
 ## 🔧 配置说明
 
 ### 环境变量
@@ -91,6 +123,8 @@ npm run deploy
 | `/pwd` | 修改访问密码 | `/pwd 新密码` |
 
 ## 📱 使用流程
+
+> 📌 **前置条件**：确保已完成部署并访问初始化 URL 来设置机器人 Webhook
 
 1. **加入群组**：用户必须先加入指定的 Telegram 群组
 2. **开始注册**：向机器人发送 `/start` 命令
@@ -166,8 +200,12 @@ npm run deploy
 ### 常见问题
 
 1. **部署失败**：检查 `wrangler.toml` 配置格式是否正确
-2. **机器人无响应**：确认 Bot Token 和 Webhook 配置正确
+2. **机器人无响应**：
+   - 确认 Bot Token 和 Webhook 配置正确
+   - **重要**：检查是否已访问初始化 URL 设置 Webhook
+   - 验证机器人是否已添加到指定群组
 3. **数据库连接失败**：检查 Redis URL 和认证信息
+4. **初始化失败**：确认 TOKEN 参数正确且与访问的 URL 匹配
 
 ### 错误码说明
 
