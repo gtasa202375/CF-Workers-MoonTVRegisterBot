@@ -46,6 +46,18 @@ export default {
             return await handleWebhookInit(bot_token, request.url, token);
         }
 
+        // 处理检测路径
+        if (path === '/check' && request.method === 'GET') {
+            const urlParams = new URLSearchParams(url.search);
+            const checkToken = urlParams.get('token');
+            
+            if (checkToken === token) {
+                return await handleCheckEndpoint(redisRestUrl, redisRestToken);
+            } else {
+                return new Response("Forbidden", { status: 403 });
+            }
+        }
+
         // 处理 Telegram Webhook
         if (request.method === 'POST') {
             return await handleTelegramWebhook(request, bot_token, GROUP_ID, redisRestUrl, redisRestToken);
@@ -55,6 +67,132 @@ export default {
         return new Response("Not Found", { status: 404 });
     },
 };
+
+// 处理检测端点
+async function handleCheckEndpoint(redisRestUrl, redisRestToken) {
+    const checkResult = {
+        timestamp: new Date().toISOString(),
+        redisConnection: {
+            url: redisRestUrl,
+            status: 'unknown',
+            error: null,
+            responseTime: null
+        },
+        adminConfig: null,
+        errors: []
+    };
+
+    let startTime = Date.now();
+
+    try {
+        // 测试Redis连接状态
+        console.log('Testing Redis connection...');
+        
+        // 首先测试一个简单的ping操作
+        const pingResponse = await fetch(`${redisRestUrl}/ping`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${redisRestToken}`,
+                'Content-Type': 'application/json',
+            },
+        });
+
+        checkResult.redisConnection.responseTime = Date.now() - startTime;
+
+        if (!pingResponse.ok) {
+            checkResult.redisConnection.status = 'error';
+            checkResult.redisConnection.error = `Redis ping failed with status: ${pingResponse.status} ${pingResponse.statusText}`;
+            checkResult.errors.push(`Redis连接失败: HTTP ${pingResponse.status}`);
+            
+            // 尝试获取更详细的错误信息
+            try {
+                const errorText = await pingResponse.text();
+                if (errorText) {
+                    checkResult.redisConnection.error += ` - ${errorText}`;
+                }
+            } catch (e) {
+                // 忽略读取错误内容的异常
+            }
+        } else {
+            checkResult.redisConnection.status = 'connected';
+            console.log('Redis ping successful, trying to read admin:config...');
+            
+            // 连接成功，尝试读取admin:config
+            try {
+                const configData = await getRedisValue(redisRestUrl, redisRestToken, 'admin:config');
+                
+                if (configData === null) {
+                    checkResult.errors.push('admin:config键不存在或为空');
+                    checkResult.adminConfig = null;
+                } else {
+                    try {
+                        // 尝试解析为JSON
+                        checkResult.adminConfig = JSON.parse(configData);
+                        console.log('Successfully parsed admin:config');
+                    } catch (parseError) {
+                        checkResult.errors.push(`admin:config解析失败: ${parseError.message}`);
+                        checkResult.adminConfig = {
+                            raw: configData,
+                            parseError: parseError.message
+                        };
+                    }
+                }
+            } catch (configError) {
+                checkResult.errors.push(`读取admin:config失败: ${configError.message}`);
+                checkResult.adminConfig = null;
+            }
+        }
+    } catch (networkError) {
+        checkResult.redisConnection.status = 'network_error';
+        checkResult.redisConnection.responseTime = Date.now() - startTime;
+        checkResult.redisConnection.error = networkError.message;
+        checkResult.errors.push(`网络错误: ${networkError.message}`);
+        
+        // 分析可能的网络问题
+        if (networkError.message.includes('fetch')) {
+            checkResult.errors.push('可能的原因: 1) Redis URL配置错误 2) 网络连接问题 3) 防火墙阻拦');
+        }
+        if (networkError.message.includes('timeout')) {
+            checkResult.errors.push('连接超时，请检查Redis服务状态');
+        }
+        if (networkError.message.includes('SSL') || networkError.message.includes('TLS')) {
+            checkResult.errors.push('SSL/TLS连接问题，请检查Redis是否支持SSL连接');
+        }
+    }
+
+    // 添加诊断建议
+    const diagnostics = [];
+    
+    if (checkResult.redisConnection.status === 'error') {
+        diagnostics.push('请检查REDIS_URL环境变量是否正确配置');
+        diagnostics.push('请确认Redis服务是否正常运行');
+        diagnostics.push('请检查UPSTASH_TOKEN是否有效');
+    }
+    
+    if (checkResult.adminConfig === null && checkResult.redisConnection.status === 'connected') {
+        diagnostics.push('Redis连接正常但admin:config不存在，请确认数据是否已正确初始化');
+    }
+    
+    if (checkResult.redisConnection.responseTime && checkResult.redisConnection.responseTime > 5000) {
+        diagnostics.push('Redis响应时间较长，可能存在网络延迟问题');
+    }
+
+    checkResult.diagnostics = diagnostics;
+    checkResult.summary = {
+        redisOk: checkResult.redisConnection.status === 'connected',
+        configOk: checkResult.adminConfig !== null && !checkResult.adminConfig.parseError,
+        overallStatus: checkResult.redisConnection.status === 'connected' && 
+                      checkResult.adminConfig !== null && 
+                      !checkResult.adminConfig.parseError ? 'healthy' : 'unhealthy'
+    };
+
+    return new Response(JSON.stringify(checkResult, null, 2), {
+        headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
+        },
+    });
+}
 
 // 初始化 Webhook
 async function handleWebhookInit(bot_token, workerUrl, token) {
