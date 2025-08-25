@@ -194,10 +194,9 @@ npm run deploy
 - [@cmliu](https://github.com/cmliu)
 
 ## 🙏 致谢
-
-- [Cloudflare Workers](https://workers.cloudflare.com/) - 无服务器平台
-- [Telegram Bot API](https://core.telegram.org/bots/api) - 机器人 API
-- [Upstash](https://upstash.com/) - Redis 数据库服务
+- [MoonTV](https://github.com/MoonTechLab/LunaTV)
+- [Cloudflare Workers](https://workers.cloudflare.com/)
+- [Telegram Bot API](https://core.telegram.org/bots/api)
 
 ---
 
