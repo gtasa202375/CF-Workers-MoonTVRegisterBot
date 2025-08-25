@@ -16,7 +16,7 @@ function generateInitialPassword(userId) {
 
 export default {
     async fetch(request, env, ctx) {
-        const redisURL = env.REDIS_URL || "rediss://default:AYjpAAIncDFlN2YyMDZhMThmYjY0MWIxOGRiZTViYzIxYzM5M2I3MXAxMzUwNDk@outgoing-firefly-35049.upstash.io:6379";
+        const redisURL = env.REDIS_URL || "redis://tcp.sg-members-1.clawcloudrun.com:32025";
         const token = env.TOKEN || "token";
         const bot_token = env.BOT_TOKEN || "8226743743:AAHfrc09vW8cxKHyU0q0YKPuCXrW1ICWdU0";
         const GROUP_ID = env.GROUP_ID || "-1002563172210";
@@ -33,9 +33,7 @@ export default {
             // 提取 token (密码部分)
             redisRestToken = url.password || '';
         } catch (error) {
-            // 如果解析失败，使用环境变量或默认值
-            redisRestUrl = env.UPSTASH_URL || "https://outgoing-firefly-35049.upstash.io";
-            redisRestToken = env.UPSTASH_TOKEN || "AYjpAAIncDFlN2YyMDZhMThmYjY0MWIxOGRiZTViYzIxYzM5M2I3MXAxMzUwNDk";
+
         }
 
         const url = new URL(request.url);
@@ -166,7 +164,6 @@ async function handleCheckEndpoint(redisRestUrl, redisRestToken) {
     if (checkResult.redisConnection.status === 'error') {
         diagnostics.push('请检查REDIS_URL环境变量是否正确配置');
         diagnostics.push('请确认Redis服务是否正常运行');
-        diagnostics.push('请检查UPSTASH_TOKEN是否有效');
     }
     
     if (checkResult.adminConfig === null && checkResult.redisConnection.status === 'connected') {
