@@ -18,6 +18,7 @@ function generateInitialPassword(userId) {
 export default {
     async fetch(request, env, ctx) {
         const moontvUrl = env.MOONTVURL || "https://moontv.com/";
+        const apiUrl = env.APIURL || moontvUrl;
         const username = env.USERNAME || "admin";
         const password = env.PASSWORD || "admin_password";
         const token = env.TOKEN || "token";
@@ -38,7 +39,7 @@ export default {
             const checkToken = urlParams.get('token');
 
             if (checkToken === token) {
-                return await handleCheckEndpoint(moontvUrl, username, password, env.KV);
+                return await handleCheckEndpoint(apiUrl, username, password, env.KV);
             } else {
                 return new Response("Forbidden", { status: 403 });
             }
@@ -46,7 +47,7 @@ export default {
 
         // 处理 Telegram Webhook
         if (request.method === 'POST') {
-            return await handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, username, password, env.KV, siteName);
+            return await handleTelegramWebhook(request, bot_token, GROUP_ID, apiUrl, moontvUrl, username, password, env.KV, siteName);
         }
 
         // 默认返回404错误页面（伪装）
@@ -55,11 +56,11 @@ export default {
 };
 
 // 处理检测端点
-async function handleCheckEndpoint(moontvUrl, username, password, KV) {
+async function handleCheckEndpoint(apiUrl, username, password, KV) {
     const checkResult = {
         timestamp: new Date().toISOString(),
         moontvApi: {
-            url: moontvUrl,
+            url: apiUrl,
             status: 'unknown',
             error: null,
             responseTime: null
@@ -83,7 +84,7 @@ async function handleCheckEndpoint(moontvUrl, username, password, KV) {
         // 测试登录API
         console.log('Testing MoonTV API connection...');
 
-        const loginResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/login`, {
+        const loginResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -110,17 +111,17 @@ async function handleCheckEndpoint(moontvUrl, username, password, KV) {
 
                 // 测试Cookie功能
                 try {
-                    const cookie = await getCookie(moontvUrl, username, password, KV);
+                    const cookie = await getCookie(apiUrl, username, password, KV);
                     checkResult.cookieStatus.exists = true;
                     checkResult.cookieStatus.valid = true;
                     console.log('Cookie获取成功');
 
                     // 测试配置API
                     try {
-                        const cookie = await getCookie(moontvUrl, username, password, KV);
+                        const cookie = await getCookie(apiUrl, username, password, KV);
                         console.log('准备调用配置API，使用Cookie:', cookie);
 
-                        const configResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/admin/config`, {
+                        const configResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/config`, {
                             method: 'GET',
                             headers: {
                                 'Cookie': cookie,
@@ -306,7 +307,7 @@ async function isCommandForThisBot(text, bot_token) {
 }
 
 // 处理 Telegram Webhook
-async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, username, password, KV, siteName) {
+async function handleTelegramWebhook(request, bot_token, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName) {
     try {
         const update = await request.json();
 
@@ -326,7 +327,7 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, us
 
             // 处理 /start 命令
             if (normalizedText === '/start') {
-                return await handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV, siteName);
+                return await handleStartCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName);
             }
 
             // 处理 /pwd 命令
@@ -337,13 +338,13 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, us
                     return new Response('OK');
                 } else if (normalizedText.startsWith('/pwd ')) {
                     const newPassword = normalizedText.substring(5).trim();
-                    return await handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, moontvUrl, username, password, KV, siteName);
+                    return await handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, apiUrl, moontvUrl, username, password, KV, siteName);
                 }
             }
 
             // 处理 /state 命令
             if (normalizedText === '/state') {
-                return await handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV, siteName);
+                return await handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName);
             }
         }
 
@@ -355,7 +356,7 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, moontvUrl, us
 }
 
 // 处理 /start 命令
-async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV, siteName) {
+async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName) {
     try {
         // 检查用户是否在群组中
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
@@ -369,8 +370,8 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
         let actualSiteName = siteName;
         if (!actualSiteName) {
             try {
-                const cookie = await getCookie(moontvUrl, username, password, KV);
-                const configResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/admin/config`, {
+                const cookie = await getCookie(apiUrl, username, password, KV);
+                const configResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/config`, {
                     method: 'GET',
                     headers: {
                         'Cookie': cookie,
@@ -389,7 +390,7 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
         }
 
         // 检查用户是否已注册（通过API查询）
-        const userExists = await checkUserExists(moontvUrl, username, password, KV, userId.toString());
+        const userExists = await checkUserExists(apiUrl, username, password, KV, userId.toString());
 
         let responseMessage;
 
@@ -399,9 +400,9 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
 
             // 获取cookie并调用API添加用户
             try {
-                const cookie = await getCookie(moontvUrl, username, password, KV);
+                const cookie = await getCookie(apiUrl, username, password, KV);
 
-                const addUserResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/admin/user`, {
+                const addUserResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/user`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -452,7 +453,7 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
 }
 
 // 处理 /state 命令
-async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl, username, password, KV, siteName) {
+async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName) {
     try {
         // 检查用户是否在群组中
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
@@ -467,9 +468,9 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
 
         // 获取配置信息
         try {
-            const cookie = await getCookie(moontvUrl, username, password, KV);
+            const cookie = await getCookie(apiUrl, username, password, KV);
 
-            const configResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/admin/config`, {
+            const configResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/config`, {
                 method: 'GET',
                 headers: {
                     'Cookie': cookie,
@@ -556,7 +557,7 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, moontvUrl
 }
 
 // 处理 /pwd 命令
-async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, moontvUrl, username, password, KV, siteName) {
+async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, apiUrl, moontvUrl, username, password, KV, siteName) {
     try {
         // 检查用户是否在群组中
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
@@ -572,7 +573,7 @@ async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPas
         }
 
         // 检查用户是否已注册（通过API查询）
-        const userExists = await checkUserExists(moontvUrl, username, password, KV, userId.toString());
+        const userExists = await checkUserExists(apiUrl, username, password, KV, userId.toString());
 
         if (!userExists) {
             await sendMessage(bot_token, chatId, "❌ 用户未注册，请先使用 /start 命令注册账户。", moontvUrl, siteName);
@@ -581,9 +582,9 @@ async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPas
 
         // 调用API修改密码
         try {
-            const cookie = await getCookie(moontvUrl, username, password, KV);
+            const cookie = await getCookie(apiUrl, username, password, KV);
 
-            const changePasswordResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/admin/user`, {
+            const changePasswordResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/user`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -616,7 +617,7 @@ async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPas
             userData.lastPasswordChange = Date.now();
             await KV.put(userKey, JSON.stringify(userData));
 
-            await sendMessage(bot_token, chatId, `✅ 密码修改成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 新密码：<code>${newPassword}</code>\n\n💡 新密码已生效，请妥善保存`);
+            await sendMessage(bot_token, chatId, `✅ 密码修改成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 新密码：<code>${newPassword}</code>\n\n💡 新密码已生效，请妥善保存`, moontvUrl);
             return new Response('OK');
         } catch (apiError) {
             console.error('修改密码API失败:', apiError);
@@ -692,7 +693,7 @@ async function sendMessage(bot_token, chatId, text, moontvUrl = null, siteName =
 }
 
 // 获取Cookie函数
-async function getCookie(moontvUrl, username, password, KV) {
+async function getCookie(apiUrl, username, password, KV) {
     try {
         // 先检查KV中是否存在cookie
         let cookieData = await KV.get('cookie');
@@ -721,7 +722,7 @@ async function getCookie(moontvUrl, username, password, KV) {
 
         // Cookie不存在或已过期，重新获取
         console.log('正在获取新的Cookie...');
-        const loginResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/login`, {
+        const loginResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -785,11 +786,11 @@ async function getCookie(moontvUrl, username, password, KV) {
 }
 
 // 检查用户是否已注册
-async function checkUserExists(moontvUrl, username, password, KV, targetUsername) {
+async function checkUserExists(apiUrl, username, password, KV, targetUsername) {
     try {
-        const cookie = await getCookie(moontvUrl, username, password, KV);
+        const cookie = await getCookie(apiUrl, username, password, KV);
 
-        const configResponse = await fetch(`${moontvUrl.replace(/\/$/, '')}/api/admin/config`, {
+        const configResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/config`, {
             method: 'GET',
             headers: {
                 'Cookie': cookie,

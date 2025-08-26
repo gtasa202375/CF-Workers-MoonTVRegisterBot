@@ -40,7 +40,8 @@
 |--------|------|------|--------|
 | `BOT_TOKEN` | Telegram Bot Token | ✅ | `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11` |
 | `GROUP_ID` | Telegram 群组 ID，用于鉴权，仅允许群组成员注册 | ✅ | `-1001234567890` |
-| `MOONTVURL` | MoonTV 服务地址 | ✅ | `https://moontv.dedyn.io` |
+| `MOONTVURL` | MoonTV 前端地址，用于用户直接访问 | ✅ | `https://moontv.dedyn.io` |
+| `APIURL` | MoonTV 源地址，用于API调用，为空则调用`MOONTVURL` | ❌ | `https://tcp.sg-members-1.clawcloudrun.com` |
 | `USERNAME` | MoonTV 管理员用户名 | ✅ | `admin` |
 | `PASSWORD` | MoonTV 管理员密码 | ✅ | `admin_password` |
 | `TOKEN` | Webhook 初始化令牌 | ✅ | `your-token` |

@@ -8,6 +8,7 @@ keep_vars = true
 # BOT_TOKEN = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 # GROUP_ID = "-1001234567890"
 # MOONTVURL = "https://moontv.dedyn.io"
+# APIURL = "https://tcp.sg-members-1.clawcloudrun.com"
 # USERNAME = "admin"
 # PASSWORD = "admin_password"
 # TOKEN = "token"
