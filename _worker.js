@@ -531,7 +531,7 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
 🌊 流式搜索: ${configResult.Config.SiteConfig?.FluidSearch ? '✅ 已启用' : '❌ 已禁用'}
 🛡️ 内容过滤: ${configResult.Config.SiteConfig?.DisableYellowFilter ? '❌ 已禁用' : '✅ 已启用'}
 🎭 数据代理: ${configResult.Config.SiteConfig?.DoubanProxyType || '默认'}
-🖼️ 图片代理: ${configResult.Config.SiteConfig?.DoubanProxyType || '默认'}
+🖼️ 图片代理: ${configResult.Config.SiteConfig?.DoubanImageProxyType || '默认'}
 
 📈 <b>服务质量</b>
 ⚡ 状态: <b>运行正常</b>
