@@ -61,7 +61,11 @@ https://your-worker-name.your-subdomain.workers.dev/your-token
 访问成功后，你将看到初始化成功的 JSON 响应。
 
 > [!TIP]
-> 记得将bot拉入`GROUP_ID`群组，但无需设置权限。
+> 请把机器人加入到你配置的 `GROUP_ID` 群组；
+>
+> 若 **群组成员列表可见** ，机器人 **无需特殊权限** ；
+> 
+> 若 **成员列表被隐藏** ，请授予机器人群 **管理员权限** 。
 
 ## 🤖 机器人命令
 
