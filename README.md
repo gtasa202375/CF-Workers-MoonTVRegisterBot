@@ -25,21 +25,14 @@
 - **部署工具**：Wrangler CLI
 
 ## 🚀 快速开始
+### 1. 部署方式
+- **Workers** 部署：复制 [_worker.js](https://github.com/cmliu/CF-Workers-DoH/blob/main/_worker.js) 代码，`保存并部署`即可
+- **Pages** 部署：`Fork` 后 `连接GitHub` 一键部署即可
 
-### 1. 部署 Cloudflare Pages：
-   - 在 Github 上先 Fork 本项目，并点上 Star !!!
-   - 在 Cloudflare Pages 控制台中选择 `连接到 Git`后，选中 `CF-Workers-MoonTVRegisterBot`项目后点击 `开始设置`。
-
-### 2. 给 Pages绑定 自定义域：
-   - 在 Pages控制台的 `自定义域`选项卡，下方点击 `设置自定义域`。
-   - 填入你的自定义次级域名，注意不要使用你的根域名，例如：
-     您分配到的域名是 `fuck.cloudns.biz`，则添加自定义域填入 `bot.fuck.cloudns.biz`即可；
-   - 按照 Cloudflare 的要求将返回你的域名DNS服务商，添加 该自定义域 `bot`的 CNAME记录 `bot.pages.dev` 后，点击 `激活域`即可。
-
-### 3. 绑定KV空间
+### 2. 绑定KV空间
    - 绑定**变量名称**为`KV`的**KV命名空间**；
 
-### 4. 配置环境变量
+### 3. 配置环境变量
 
 在 Cloudflare Workers 控制台中配置以下环境变量：
 
@@ -52,13 +45,7 @@
 | `PASSWORD` | MoonTV 管理员密码 | ✅ | `admin_password` |
 | `TOKEN` | Webhook 初始化令牌 | ✅ | `your-token` |
 
-### 5. 部署到 Cloudflare Workers
-
-```bash
-npm run deploy
-```
-
-### 6. 初始化机器人
+### 4. 初始化机器人
 
 ⚠️ **重要步骤**：部署完成后，访问以下 URL 来初始化机器人的 Webhook：
 
