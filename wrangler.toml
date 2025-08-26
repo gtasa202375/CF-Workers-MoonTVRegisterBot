@@ -13,6 +13,6 @@ keep_vars = true
 # PASSWORD = "admin_password"
 # TOKEN = "token"
 
-[[kv_namespaces]]
-binding = "KV"
-id = "1fdae7a5eb774135832f55d461ac81e3"
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "1fdae7a5eb774135832f55d461ac81e3"

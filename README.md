@@ -27,7 +27,7 @@
 
 ## 🚀 快速开始
 ### 1. 部署方式
-- **Workers** 部署：复制 [_worker.js](https://github.com/cmliu/CF-Workers-DoH/blob/main/_worker.js) 代码，`保存并部署`即可
+- **Workers** 部署：复制 [_worker.js](https://github.com/cmliu/CF-Workers-MoonTVRegisterBot/blob/main/_worker.js) 代码，`保存并部署`即可
 - **Pages** 部署：`Fork` 后 `连接GitHub` 一键部署即可
 
 ### 2. 绑定KV空间
@@ -47,6 +47,9 @@
 | `PASSWORD` | MoonTV 管理员密码 | ✅ | `admin_password` |
 | `TOKEN` | Webhook 初始化令牌 | ✅ | `your-token` |
 
+> [!WARNING]
+> `USERNAME`与`PASSWORD`为**管理员**权限即可，无需站长权限，风险可控。
+
 ### 4. 初始化机器人
 
 ⚠️ **重要步骤**：部署完成后，访问以下 URL 来初始化机器人的 Webhook：
@@ -56,6 +59,9 @@ https://your-worker-name.your-subdomain.workers.dev/your-token
 ```
 
 访问成功后，你将看到初始化成功的 JSON 响应。
+
+> [!TIP]
+> 记得将bot拉入`GROUP_ID`群组，但无需设置权限。
 
 ## 🤖 机器人命令
 
@@ -110,5 +116,5 @@ CF-Workers-MoonTVRegisterBot/
 
 ## 🙏 致谢
 
-- [MoonTV](https://github.com/MoonTechLab/LunaTV)
+- [LunaTV(MoonTV)](https://github.com/MoonTechLab/LunaTV)
 - [ktff](https://t.me/zero_freez)
