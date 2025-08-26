@@ -15,6 +15,19 @@ function generateInitialPassword(userId) {
         });
 }
 
+// 获取延迟状态描述
+function getLatencyStatus(responseTime) {
+    if (!responseTime) return '未知';
+    
+    const thresholds = [
+        { max: 300, status: '良好' },
+        { max: 1000, status: '一般' },
+        { max: Infinity, status: '拥挤' }
+    ];
+    
+    return thresholds.find(t => responseTime < t.max).status;
+}
+
 export default {
     async fetch(request, env, ctx) {
         const moontvUrl = env.MOONTVURL || "https://moontv.com/";
@@ -470,6 +483,7 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
         try {
             const cookie = await getCookie(apiUrl, username, password, KV);
 
+            const apiStartTime = Date.now();
             const configResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/config`, {
                 method: 'GET',
                 headers: {
@@ -483,6 +497,7 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
             }
 
             const configResult = await configResponse.json();
+            const apiResponseTime = Date.now() - apiStartTime;
 
             if (!configResult.Config) {
                 throw new Error('配置数据获取失败');
@@ -513,6 +528,21 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
                 minute: '2-digit'
             }) : '未知';
 
+            // 测试 moontvUrl 延迟
+            let moontvResponseTime = null;
+            try {
+                const moontvStartTime = Date.now();
+                const moontvResponse = await fetch(moontvUrl, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': USER_AGENT
+                    }
+                });
+                moontvResponseTime = Date.now() - moontvStartTime;
+            } catch (error) {
+                console.error('测试 moontvUrl 延迟失败:', error);
+            }
+
             // 构建状态消息
             const stateMessage = `🎬 <b>${configSiteName}</b> 站点状态
 
@@ -534,8 +564,8 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
 🖼️ 图片代理: ${configResult.Config.SiteConfig?.DoubanImageProxyType || '默认'}
 
 📈 <b>服务质量</b>
-⚡ 状态: <b>运行正常</b>
-🌐 访问: <b>稳定</b>
+⚡ 状态: <b>${getLatencyStatus(apiResponseTime)}</b> ${apiResponseTime}ms
+🌐 访问: <b>${getLatencyStatus(moontvResponseTime)}</b> ${moontvResponseTime !== null ? moontvResponseTime + 'ms' : '未知'}
 📱 移动端: <b>兼容</b>
 
 <i>最后更新: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</i>`;
