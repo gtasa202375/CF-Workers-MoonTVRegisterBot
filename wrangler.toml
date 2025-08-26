@@ -9,7 +9,7 @@ keep_vars = true
 # GROUP_ID = "-1001234567890"
 # MOONTVURL = "https://moontv.dedyn.io"
 # USERNAME = "admin"
-# PASSWORD = "your-admin-password"
+# PASSWORD = "admin_password"
 # TOKEN = "token"
 
 [[kv_namespaces]]
