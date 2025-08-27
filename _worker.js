@@ -411,44 +411,79 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
             // 用户未注册，创建新账户
             const initialPassword = await generateInitialPassword(userId);
 
-            // 获取cookie并调用API添加用户
-            try {
-                const cookie = await getCookie(apiUrl, username, password, KV);
+            // 先发送"正在注册"的消息
+            await sendMessage(bot_token, chatId, "⏳ 正在为您注册账户，请稍等...", moontvUrl, actualSiteName);
 
-                const addUserResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/user`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Cookie': cookie,
-                        'User-Agent': USER_AGENT
-                    },
-                    body: JSON.stringify({
-                        targetUsername: userId.toString(),
-                        targetPassword: initialPassword,
-                        action: 'add'
-                    })
-                });
+            // 尝试注册用户，最多重试3次
+            let registrationSuccess = false;
+            let lastError = null;
+            const maxRetries = 3;
 
-                if (!addUserResponse.ok) {
-                    throw new Error(`添加用户API失败: HTTP ${addUserResponse.status}`);
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    console.log(`第${attempt}次尝试注册用户: ${userId}`);
+                    
+                    // 获取cookie并调用API添加用户
+                    const cookie = await getCookie(apiUrl, username, password, KV);
+
+                    const addUserResponse = await fetch(`${apiUrl.replace(/\/$/, '')}/api/admin/user`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cookie': cookie,
+                            'User-Agent': USER_AGENT
+                        },
+                        body: JSON.stringify({
+                            targetUsername: userId.toString(),
+                            targetPassword: initialPassword,
+                            action: 'add'
+                        })
+                    });
+
+                    if (!addUserResponse.ok) {
+                        throw new Error(`添加用户API失败: HTTP ${addUserResponse.status}`);
+                    }
+
+                    const addResult = await addUserResponse.json();
+                    if (!addResult.ok) {
+                        throw new Error('添加用户API返回失败状态');
+                    }
+
+                    // 等待一秒让后端处理完成
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    // 验证用户是否真正创建成功
+                    console.log(`验证第${attempt}次注册是否成功...`);
+                    const userCreated = await checkUserExists(apiUrl, username, password, KV, userId.toString());
+                    
+                    if (userCreated) {
+                        console.log(`第${attempt}次注册验证成功`);
+                        registrationSuccess = true;
+                        break;
+                    } else {
+                        console.log(`第${attempt}次注册验证失败，用户未出现在列表中`);
+                        throw new Error(`第${attempt}次注册后验证失败，用户未出现在系统中`);
+                    }
+
+                } catch (apiError) {
+                    console.error(`第${attempt}次注册尝试失败:`, apiError);
+                    lastError = apiError;
+                    
+                    // 如果不是最后一次尝试，等待2秒后重试
+                    if (attempt < maxRetries) {
+                        console.log(`等待2秒后进行第${attempt + 1}次重试...`);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
                 }
+            }
 
-                const addResult = await addUserResponse.json();
-                if (!addResult.ok) {
-                    throw new Error('添加用户失败');
-                }
-
-                // 将用户信息存储到KV作为备份记录
-                await KV.put(`user_${userId}`, JSON.stringify({
-                    username: userId.toString(),
-                    createdAt: Date.now(),
-                    lastPasswordChange: Date.now()
-                }));
-
+            if (registrationSuccess) {
+                // 注册成功
                 responseMessage = `✅ 注册成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 请妥善保存密码，忘记密码可通过修改密码命令重置`;
-            } catch (apiError) {
-                console.error('添加用户API失败:', apiError);
-                await sendMessage(bot_token, chatId, `❌ 注册失败: ${apiError.message}\n\n请稍后再试或联系管理员。`, moontvUrl, actualSiteName);
+            } else {
+                // 3次尝试后仍然失败
+                console.error(`经过${maxRetries}次尝试后注册仍然失败，最后错误:`, lastError);
+                await sendMessage(bot_token, chatId, `❌ 注册失败\n\n经过${maxRetries}次尝试后仍无法成功注册账户。\n\n请联系管理员排查问题。\n\n错误信息: ${lastError?.message || '未知错误'}`, moontvUrl, actualSiteName);
                 return new Response('OK');
             }
         } else {
@@ -460,7 +495,7 @@ async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
         return new Response('OK');
     } catch (error) {
         console.error('Error in start command:', error);
-        await sendMessage(bot_token, chatId, "❌ 操作失败，请稍后再试。", moontvUrl, actualSiteName || siteName);
+        await sendMessage(bot_token, chatId, "❌ 操作失败，请稍后再试。", moontvUrl, siteName);
         return new Response('OK');
     }
 }
@@ -636,16 +671,6 @@ async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPas
             if (!changeResult.ok) {
                 throw new Error('修改密码失败');
             }
-
-            // 更新KV中的用户信息作为备份记录
-            const userKey = `user_${userId}`;
-            const existingUserData = await KV.get(userKey);
-            let userData = existingUserData ? JSON.parse(existingUserData) : {
-                username: userId.toString(),
-                createdAt: Date.now()
-            };
-            userData.lastPasswordChange = Date.now();
-            await KV.put(userKey, JSON.stringify(userData));
 
             await sendMessage(bot_token, chatId, `✅ 密码修改成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 新密码：<code>${newPassword}</code>\n\n💡 新密码已生效，请妥善保存`, moontvUrl);
             return new Response('OK');
