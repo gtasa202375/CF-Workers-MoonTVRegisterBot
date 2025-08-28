@@ -701,8 +701,33 @@ async function checkUserInGroup(bot_token, groupId, userId) {
         const result = await response.json();
 
         if (result.ok) {
-            const status = result.result.status;
-            return ['creator', 'administrator', 'member'].includes(status);
+            const member = result.result;
+            const status = member.status;
+            
+            // 原有的有效状态：创建者、管理员、普通成员
+            const isStandardMember = ['creator', 'administrator', 'member'].includes(status);
+            
+            // 新增：受限制但仍是成员的情况
+            // 如果状态是restricted但is_member为true，说明用户仍然是群组成员，只是被限制了某些权限
+            const isRestrictedMember = status === 'restricted' && member.is_member === true;
+            
+            // 排除的状态：已离开、被踢出
+            const isExcludedStatus = ['left', 'kicked'].includes(status);
+            
+            // 最终判断：标准成员 或 受限制成员，但不能是已离开/被踢出的
+            const isValidMember = (isStandardMember || isRestrictedMember) && !isExcludedStatus;
+            
+            // 记录详细日志，方便调试
+            console.log(`用户 ${userId} 群组状态检查:`, {
+                status: status,
+                is_member: member.is_member,
+                isStandardMember: isStandardMember,
+                isRestrictedMember: isRestrictedMember,
+                isExcludedStatus: isExcludedStatus,
+                finalResult: isValidMember
+            });
+            
+            return isValidMember;
         }
 
         return false;
