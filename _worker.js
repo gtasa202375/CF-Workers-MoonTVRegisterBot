@@ -340,7 +340,7 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, apiUrl, moont
 
             // 处理 /start 命令
             if (normalizedText === '/start') {
-                return await handleStartCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName);
+                return await handleStartCommand(bot_token, userId, chatId, message.chat.type, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName);
             }
 
             // 处理 /pwd 命令
@@ -351,7 +351,7 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, apiUrl, moont
                     return new Response('OK');
                 } else if (normalizedText.startsWith('/pwd ')) {
                     const newPassword = normalizedText.substring(5).trim();
-                    return await handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, apiUrl, moontvUrl, username, password, KV, siteName);
+                    return await handlePasswordCommand(bot_token, userId, chatId, message.chat.type, GROUP_ID, newPassword, apiUrl, moontvUrl, username, password, KV, siteName);
                 }
             }
 
@@ -369,8 +369,19 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, apiUrl, moont
 }
 
 // 处理 /start 命令
-async function handleStartCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName) {
+async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName) {
     try {
+        // 检查是否在群聊或超级群组中
+        if (chatType === 'group' || chatType === 'supergroup') {
+            // 在群聊中，只提示用户私聊机器人
+            const botInfo = await getBotInfo(bot_token);
+            const botUsername = botInfo ? botInfo.username : 'bot';
+            
+            await sendMessage(bot_token, chatId, `🔐 为了保护您的账户安全，请私聊机器人进行注册\n\n💬 点击 @${botUsername}\n\n⚠️ 在群聊中注册会暴露您的密码信息`, moontvUrl, siteName);
+            return new Response('OK');
+        }
+
+        // 以下是原来的私聊处理逻辑
         // 检查用户是否在群组中
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
 
@@ -622,8 +633,19 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
 }
 
 // 处理 /pwd 命令
-async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPassword, apiUrl, moontvUrl, username, password, KV, siteName) {
+async function handlePasswordCommand(bot_token, userId, chatId, chatType, GROUP_ID, newPassword, apiUrl, moontvUrl, username, password, KV, siteName) {
     try {
+        // 检查是否在群聊或超级群组中
+        if (chatType === 'group' || chatType === 'supergroup') {
+            // 在群聊中，只提示用户私聊机器人
+            const botInfo = await getBotInfo(bot_token);
+            const botUsername = botInfo ? botInfo.username : 'bot';
+            
+            await sendMessage(bot_token, chatId, `🔐 为了保护您的账户安全，请私聊机器人修改密码\n\n💬 点击 @${botUsername}\n\n⚠️ 在群聊中修改密码会暴露您的新密码`, moontvUrl, siteName);
+            return new Response('OK');
+        }
+
+        // 以下是原来的私聊处理逻辑
         // 检查用户是否在群组中
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
 
@@ -683,6 +705,21 @@ async function handlePasswordCommand(bot_token, userId, chatId, GROUP_ID, newPas
         console.error('Error in password command:', error);
         await sendMessage(bot_token, chatId, "❌ 密码修改失败，请稍后再试。", moontvUrl, siteName);
         return new Response('OK');
+    }
+}
+
+// 获取机器人信息
+async function getBotInfo(bot_token) {
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${bot_token}/getMe`);
+        if (!response.ok) {
+            return null;
+        }
+        const result = await response.json();
+        return result.ok ? result.result : null;
+    } catch (error) {
+        console.error('Error getting bot info:', error);
+        return null;
     }
 }
 
