@@ -386,7 +386,8 @@ async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID,
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
 
         if (!isInGroup) {
-            await sendMessage(bot_token, chatId, "⚠️ 当前用户无注册权限，请先加入指定群组。", moontvUrl, siteName);
+            const groupName = await getGroupName(bot_token, GROUP_ID);
+            await sendMessage(bot_token, chatId, `⚠️ 当前用户无注册权限，只允许 <b>${groupName}</b> 群组内部人员注册使用。`, moontvUrl, siteName);
             return new Response('OK');
         }
 
@@ -518,7 +519,8 @@ async function handleStateCommand(bot_token, userId, chatId, GROUP_ID, apiUrl, m
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
 
         if (!isInGroup) {
-            await sendMessage(bot_token, chatId, "⚠️ 当前用户无权限，请先加入指定群组。", moontvUrl, siteName);
+            const groupName = await getGroupName(bot_token, GROUP_ID);
+            await sendMessage(bot_token, chatId, `⚠️ 当前用户无权限，只允许 <b>${groupName}</b> 群组内部人员使用。`, moontvUrl, siteName);
             return new Response('OK');
         }
 
@@ -650,7 +652,8 @@ async function handlePasswordCommand(bot_token, userId, chatId, chatType, GROUP_
         const isInGroup = await checkUserInGroup(bot_token, GROUP_ID, userId);
 
         if (!isInGroup) {
-            await sendMessage(bot_token, chatId, "⚠️ 当前用户无权限，请先加入指定群组。", moontvUrl, siteName);
+            const groupName = await getGroupName(bot_token, GROUP_ID);
+            await sendMessage(bot_token, chatId, `⚠️ 当前用户无权限，只允许 <b>${groupName}</b> 群组内部人员使用。`, moontvUrl, siteName);
             return new Response('OK');
         }
 
@@ -771,6 +774,30 @@ async function checkUserInGroup(bot_token, groupId, userId) {
     } catch (error) {
         console.error('Error checking group membership:', error);
         return false;
+    }
+}
+
+// 获取群组名称
+async function getGroupName(bot_token, groupId) {
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${bot_token}/getChat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: groupId
+            }),
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+            return result.result.title || '指定群组';
+        }
+
+        return '指定群组';
+    } catch (error) {
+        console.error('Error getting group name:', error);
+        return '指定群组';
     }
 }
 
