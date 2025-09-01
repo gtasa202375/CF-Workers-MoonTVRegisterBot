@@ -340,15 +340,7 @@ async function handleTelegramWebhook(request, bot_token, GROUP_ID, apiUrl, moont
 
             // 处理 /start 命令
             if (normalizedText === '/start' || normalizedText.startsWith('/start ')) {
-                if (normalizedText === '/start reset_pwd') {
-                    // 处理重置密码的特殊start命令
-                    const resetMessage = `🆔 用户名：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
-                    await sendMessage(bot_token, chatId, resetMessage, moontvUrl, siteName);
-                    return new Response('OK');
-                } else {
-                    // 处理普通的start命令
-                    return await handleStartCommand(bot_token, userId, chatId, message.chat.type, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName);
-                }
+                return await handleStartCommand(bot_token, userId, chatId, message.chat.type, GROUP_ID, apiUrl, moontvUrl, username, password, KV, siteName);
             }
 
             // 处理 /pwd 命令
