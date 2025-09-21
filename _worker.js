@@ -28,10 +28,22 @@ function getLatencyStatus(responseTime) {
     return thresholds.find(t => responseTime < t.max).status;
 }
 
+// 提取基础域名URL
+function extractBaseUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        return `${urlObj.protocol}//${urlObj.host}`;
+    } catch (error) {
+        // 如果URL解析失败，返回原始URL
+        console.error('URL解析失败:', error);
+        return url;
+    }
+}
+
 export default {
     async fetch(request, env, ctx) {
-        const moontvUrl = env.MOONTVURL || "https://moontv.com/";
-        const apiUrl = env.APIURL || moontvUrl;
+        const moontvUrl = extractBaseUrl(env.MOONTVURL || "https://moontv.com/");
+        const apiUrl = extractBaseUrl(env.APIURL || moontvUrl);
         const username = env.USERNAME || "admin";
         const password = env.PASSWORD || "admin_password";
         const token = env.TOKEN || "token";
