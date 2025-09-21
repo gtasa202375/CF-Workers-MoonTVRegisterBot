@@ -531,7 +531,7 @@ async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID,
 
             if (registrationSuccess) {
                 // 注册成功
-                responseMessage = `✅ 注册成功！\n\n🌐 <b>服务器地址：</b><code>${moontvUrl}</code>\n🆔 <b>用户名：</b><code>${userId}</code> (您的Telegram账号ID)\n🔑 <b>访问密码：</b><code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 请妥善保存密码，忘记密码可通过修改密码命令重置`;
+                responseMessage = `✅ 注册成功！\n\n🌐 <b>服务器：</b><code>${moontvUrl}</code>\n🆔 <b>用户名：</b><code>${userId}</code> (您的Telegram数字ID)\n🔑 <b>访问密码：</b><code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 请妥善保存密码，忘记密码可通过修改密码命令重置`;
             } else {
                 // 3次尝试后仍然失败
                 console.error(`经过${maxRetries}次尝试后注册仍然失败，最后错误:`, lastError);
@@ -540,7 +540,7 @@ async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID,
             }
         } else {
             // 用户已存在，显示当前信息
-            responseMessage = `ℹ️ 你已注册过账户\n\n🌐 <b>服务器地址：</b><code>${moontvUrl}</code>\n🆔 <b>用户名：</b><code>${userId}</code> (您的Telegram账号ID)\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
+            responseMessage = `ℹ️ 你已注册过账户\n\n🌐 <b>服务器：</b><code>${moontvUrl}</code>\n🆔 <b>用户名：</b><code>${userId}</code> (您的Telegram数字ID)\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
         }
 
         await sendMessage(bot_token, chatId, responseMessage, moontvUrl, actualSiteName, appInfo);
@@ -737,7 +737,7 @@ async function handlePasswordCommand(bot_token, userId, chatId, chatType, GROUP_
                 throw new Error('修改密码失败');
             }
 
-            await sendMessage(bot_token, chatId, `✅ 密码修改成功！\n\n🆔 <b>用户名：</b><code>${userId}</code> (您的Telegram账号ID)\n🔑 <b>访问密码：</b><code>${newPassword}</code>\n\n💡 新密码已生效，请妥善保存`, moontvUrl);
+            await sendMessage(bot_token, chatId, `✅ 密码修改成功！\n\n🆔 <b>用户名：</b><code>${userId}</code> (您的Telegram数字ID)\n🔑 <b>访问密码：</b><code>${newPassword}</code>\n\n💡 新密码已生效，请妥善保存`, moontvUrl);
             return new Response('OK');
         } catch (apiError) {
             console.error('修改密码API失败:', apiError);
