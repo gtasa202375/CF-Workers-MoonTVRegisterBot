@@ -540,7 +540,7 @@ async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID,
             }
         } else {
             // 用户已存在，显示当前信息
-            responseMessage = `ℹ️ 你已注册过账户\n\n\n\n🌐 服务器地址：<code>${moontvUrl}</code>\n🆔 用户名：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
+            responseMessage = `ℹ️ 你已注册过账户\n\n🌐 服务器地址：<code>${moontvUrl}</code>\n🆔 用户名：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
         }
 
         await sendMessage(bot_token, chatId, responseMessage, moontvUrl, actualSiteName, appInfo);
