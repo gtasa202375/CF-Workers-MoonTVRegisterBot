@@ -122,3 +122,4 @@ CF-Workers-MoonTVRegisterBot/
 
 - [LunaTV(MoonTV)](https://github.com/MoonTechLab/LunaTV)
 - [ktff](https://t.me/zero_freez)
+- [Selene APP客户端](https://github.com/MoonTechLab/Selene)

@@ -28,10 +28,47 @@ function getLatencyStatus(responseTime) {
     return thresholds.find(t => responseTime < t.max).status;
 }
 
+// 提取基础域名URL
+function extractBaseUrl(url) {
+    try {
+        const urlObj = new URL(url);
+        return `${urlObj.protocol}//${urlObj.host}`;
+    } catch (error) {
+        // 如果URL解析失败，返回原始URL
+        console.error('URL解析失败:', error);
+        return url;
+    }
+}
+
+// 获取最新APP下载页信息
+async function getLatestAppRelease() {
+    try {
+        const response = await fetch('https://api.github.com/repos/MoonTechLab/Selene/releases/latest', {
+            headers: {
+                'User-Agent': USER_AGENT
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`GitHub API请求失败: HTTP ${response.status}`);
+        }
+
+        const releaseData = await response.json();
+        
+        return {
+            version: releaseData.tag_name,
+            downloadUrl: releaseData.html_url
+        };
+    } catch (error) {
+        console.error('获取最新APP版本失败:', error);
+        return null;
+    }
+}
+
 export default {
     async fetch(request, env, ctx) {
-        const moontvUrl = env.MOONTVURL || "https://moontv.com/";
-        const apiUrl = env.APIURL || moontvUrl;
+        const moontvUrl = extractBaseUrl(env.MOONTVURL || "https://moontv.com/");
+        const apiUrl = extractBaseUrl(env.APIURL || moontvUrl);
         const username = env.USERNAME || "admin";
         const password = env.PASSWORD || "admin_password";
         const token = env.TOKEN || "token";
@@ -417,6 +454,9 @@ async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID,
         // 检查用户是否已注册（通过API查询）
         const userExists = await checkUserExists(apiUrl, username, password, KV, userId.toString());
 
+        // 获取最新APP版本信息
+        const appInfo = await getLatestAppRelease();
+
         let responseMessage;
 
         if (!userExists) {
@@ -491,19 +531,19 @@ async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID,
 
             if (registrationSuccess) {
                 // 注册成功
-                responseMessage = `✅ 注册成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 请妥善保存密码，忘记密码可通过修改密码命令重置`;
+                responseMessage = `✅ 注册成功！\n\n🌐 服务器地址：<code>${moontvUrl}</code>\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 请妥善保存密码，忘记密码可通过修改密码命令重置`;
             } else {
                 // 3次尝试后仍然失败
                 console.error(`经过${maxRetries}次尝试后注册仍然失败，最后错误:`, lastError);
-                await sendMessage(bot_token, chatId, `❌ 注册失败\n\n经过${maxRetries}次尝试后仍无法成功注册账户。\n\n请联系管理员排查问题。\n\n错误信息: ${lastError?.message || '未知错误'}`, moontvUrl, actualSiteName);
+                await sendMessage(bot_token, chatId, `❌ 注册失败\n\n经过${maxRetries}次尝试后仍无法成功注册账户。\n\n请联系管理员排查问题。\n\n错误信息: ${lastError?.message || '未知错误'}`, moontvUrl, actualSiteName, appInfo);
                 return new Response('OK');
             }
         } else {
             // 用户已存在，显示当前信息
-            responseMessage = `ℹ️ 你已注册过账户\n\n🆔 用户名：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
+            responseMessage = `ℹ️ 你已注册过账户\n\n\n\n🌐 服务器地址：<code>${moontvUrl}</code>\n🆔 用户名：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
         }
 
-        await sendMessage(bot_token, chatId, responseMessage, moontvUrl, actualSiteName);
+        await sendMessage(bot_token, chatId, responseMessage, moontvUrl, actualSiteName, appInfo);
         return new Response('OK');
     } catch (error) {
         console.error('Error in start command:', error);
@@ -802,7 +842,7 @@ async function getGroupName(bot_token, groupId) {
 }
 
 // 发送消息（带有站点链接按钮）
-async function sendMessage(bot_token, chatId, text, moontvUrl = null, siteName = null) {
+async function sendMessage(bot_token, chatId, text, moontvUrl = null, siteName = null, appInfo = null) {
     try {
         const messageData = {
             chat_id: chatId,
@@ -810,16 +850,31 @@ async function sendMessage(bot_token, chatId, text, moontvUrl = null, siteName =
             parse_mode: 'HTML'
         };
 
-        // 如果提供了 moontvUrl，添加内联键盘
+        // 构建内联键盘按钮
+        const inlineKeyboard = [];
+
+        // 如果提供了 moontvUrl，添加观影站点按钮
         if (moontvUrl && siteName) {
             const buttonText = `🎬 ${siteName}观影站点`;
+            inlineKeyboard.push([{
+                text: buttonText,
+                url: moontvUrl
+            }]);
+        }
+
+        // 如果提供了 appInfo，添加APP下载按钮
+        if (appInfo && appInfo.downloadUrl && appInfo.version) {
+            const appButtonText = `📱 APP客户端下载 ${appInfo.version}`;
+            inlineKeyboard.push([{
+                text: appButtonText,
+                url: appInfo.downloadUrl
+            }]);
+        }
+
+        // 如果有按钮，添加到消息中
+        if (inlineKeyboard.length > 0) {
             messageData.reply_markup = {
-                inline_keyboard: [[
-                    {
-                        text: buttonText,
-                        url: moontvUrl
-                    }
-                ]]
+                inline_keyboard: inlineKeyboard
             };
         }
 
