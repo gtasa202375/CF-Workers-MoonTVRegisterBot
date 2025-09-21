@@ -491,7 +491,7 @@ async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID,
 
             if (registrationSuccess) {
                 // 注册成功
-                responseMessage = `✅ 注册成功！\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 请妥善保存密码，忘记密码可通过修改密码命令重置`;
+                responseMessage = `✅ 注册成功！\n\n🌐 服务器地址：<code>${moontvUrl}</code>\n\n🆔 用户名：<code>${userId}</code>\n🔑 访问密码：<code>${initialPassword}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 请妥善保存密码，忘记密码可通过修改密码命令重置`;
             } else {
                 // 3次尝试后仍然失败
                 console.error(`经过${maxRetries}次尝试后注册仍然失败，最后错误:`, lastError);
@@ -500,7 +500,7 @@ async function handleStartCommand(bot_token, userId, chatId, chatType, GROUP_ID,
             }
         } else {
             // 用户已存在，显示当前信息
-            responseMessage = `ℹ️ 你已注册过账户\n\n🆔 用户名：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
+            responseMessage = `ℹ️ 你已注册过账户\n\n\n\n🌐 服务器地址：<code>${moontvUrl}</code>\n\n🆔 用户名：<code>${userId}</code>\n\n💡 使用 <code>/pwd 新密码</code> 可以修改密码\n\n⚠️ 如忘记密码，可直接通过修改密码命令重置`;
         }
 
         await sendMessage(bot_token, chatId, responseMessage, moontvUrl, actualSiteName);
