@@ -855,7 +855,7 @@ async function sendMessage(bot_token, chatId, text, moontvUrl = null, siteName =
 
         // 如果提供了 moontvUrl，添加观影站点按钮
         if (moontvUrl && siteName) {
-            const buttonText = `🎬 ${siteName}观影站点`;
+            const buttonText = `🎬 ${siteName}在线观影`;
             inlineKeyboard.push([{
                 text: buttonText,
                 url: moontvUrl
@@ -868,6 +868,13 @@ async function sendMessage(bot_token, chatId, text, moontvUrl = null, siteName =
             inlineKeyboard.push([{
                 text: appButtonText,
                 url: appInfo.downloadUrl
+            }]);
+        } else {
+            // 添加默认的APP下载按钮
+            const defaultAppButtonText = '📱 APP客户端下载';
+            inlineKeyboard.push([{
+                text: defaultAppButtonText,
+                url: 'https://github.com/MoonTechLab/Selene/releases'
             }]);
         }
 
